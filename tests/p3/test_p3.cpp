@@ -94,7 +94,7 @@ TEST(calc_division_by_zero) {
     CHECK(err == "division by zero");
 }
 
-
+// Test 6
 TEST(reg_10000_tools) {
     ToolRegistry r;
     Tool* first = nullptr;
@@ -129,6 +129,104 @@ TEST(reg_10000_tools) {
     std::printf("Max probe length: %zu\n", r.max_probe_length());
 }
 
+// Test 7
+TEST(reg_alternative_hash) {
+    ToolRegistry r;
+
+    // insert 10,000 tools using our registry
+    for (int i = 0; i < 10000; ++i) {
+        std::string name = "tool_" + std::to_string(i);
+        REQUIRE(r.add(std::make_unique<NamedTool>(name)));
+    }
+
+    // create counters for the weak hash
+    std::vector<std::size_t> weak_buckets(r.bucket_count(), 0);
+
+    // calculate bucket indices using the weak hash
+    for (int i = 0; i < 10000; ++i) {
+        std::string name = "tool_" + std::to_string(i);
+
+        std::size_t weak_hash =
+            static_cast<unsigned char>(name[0]) + name.size();
+
+        std::size_t index = weak_hash % weak_buckets.size();
+        ++weak_buckets[index];
+    }
+
+    // find the longest weak-hash chain
+    std::size_t longest_weak = 0;
+
+    for (std::size_t count : weak_buckets) {
+        if (count > longest_weak) {
+            longest_weak = count;
+        }
+    }
+
+    // print both hash measurements
+    std::printf("FNV-1a max chain: %zu\n", r.max_probe_length());
+    std::printf("Weak hash max chain: %zu\n", longest_weak);
+
+    CHECK(longest_weak > r.max_probe_length());
+}
+
+// Test 8
+TEST(reg_null_rejected) {
+    ToolRegistry r;
+
+    CHECK(r.size() == 0);                // verify empty registry
+    CHECK(!r.add(nullptr));              // reject null tool
+    CHECK(r.size() == 0);                // verify count unchanged
+    CHECK(r.find("unknown") == nullptr);  // verify missing tool
+}
+
+// Test 9
+TEST(reg_for_each_visits_each_once) {
+    ToolRegistry r;
+
+    // register three tools
+    REQUIRE(r.add(std::make_unique<NamedTool>("alpha")));
+    REQUIRE(r.add(std::make_unique<NamedTool>("beta")));
+    REQUIRE(r.add(std::make_unique<NamedTool>("gamma")));
+
+    // initialize all to zero
+    int visits = 0;
+    int alpha = 0;
+    int beta = 0;
+    int gamma = 0;
+
+    // visit every registered tool
+    r.for_each([&](const Tool& tool) {
+        ++visits;
+
+        if (tool.name() == "alpha") {
+            ++alpha;
+        }
+        else if (tool.name() == "beta") {
+            ++beta;
+        }
+        else if (tool.name() == "gamma") {
+            ++gamma;
+        }
+    });
+
+    // verify each tool was visited exactly once
+    CHECK(visits == 3);
+    CHECK(alpha == 1);
+    CHECK(beta == 1);
+    CHECK(gamma == 1);
+}
+
+// Test 10
+
+// Test 11
+
+// Test 12
+
+// Test 13
+
+// Test 14
+
+// Test 15
 
 // ------------------------------------------------------------- your tests
 //
