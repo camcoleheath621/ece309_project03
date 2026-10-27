@@ -256,10 +256,83 @@ TEST(calc_multiple_operations) {
     CHECK(result == 9);
 }
 
-// Test 14
+// Test 14: Multiply two negative numbers
+TEST(calc_negative_numbers) {
+    double result = 0;
+    std::string error;
 
-// Test 15
+    REQUIRE(eval("-3 * -3", &result, &error));
+    CHECK(result == 9);
+}
 
+// Test 15: Division produces a decimal result
+TEST(calc_decimal_result) {
+    double result = 0;
+    std::string error;
+
+    REQUIRE(eval("7 / 2", &result, &error));
+    CHECK(result == 3.5);
+}
+
+// Test 16: Reject division by zero inside parentheses
+TEST(calc_division_by_zero_parentheses) {
+    double result = 0;
+    std::string error;
+
+    CHECK(!eval("1 / (2 - 2)", &result, &error));
+    CHECK(error == "division by zero");
+}
+
+// Test 17: Evaluate multiple operators without parentheses
+TEST(calc_multiple_operators) {
+    double result = 0;
+    std::string error;
+
+    REQUIRE(eval("8 + 6 / 3 * 2", &result, &error));
+    CHECK(result == 12);
+}
+
+// Test 18: Evaluate decimal numbers with parentheses
+TEST(calc_decimal_parentheses) {
+    double result = 0;
+    std::string error;
+
+    REQUIRE(eval("(1.5 + 2.25) * 2", &result, &error));
+    CHECK(result == 7.5);
+}
+
+// Test 19: Evaluate 20,000 addition terms
+TEST(calc_large_expression) {
+    double result = 0;
+    std::string error;
+
+    std::string expression = "1";
+
+    // create an expression with 20,000 terms
+    for (int i = 1; i < 20000; ++i) {
+        expression += "+1";
+    }
+
+    REQUIRE(eval(expression, &result, &error));
+    CHECK(result == 20000);
+}
+
+// Test 20: Evaluate 5,000 nested parentheses
+TEST(calc_deep_parentheses) {
+    double result = 0;
+    std::string error;
+
+    // create 5,000 opening parentheses
+    std::string expression(5000, '(');
+
+    expression += "7";              // value inside parentheses
+
+    // add 5,000 closing parentheses
+    expression.append(5000, ')');
+
+    REQUIRE(eval(expression, &result, &error));
+    CHECK(result == 7);
+}
 // ------------------------------------------------------------- your tests
 //
 // Still to write (spec §6 has the full list). Suggested names:
