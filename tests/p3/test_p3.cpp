@@ -90,7 +90,7 @@ TEST(calc_precedence) {
     CHECK(v == 14);
 }
 
-// Test 5: Register and Retrieve 10,000 Tools
+// Test 5: Reject Division by Zero
 TEST(calc_division_by_zero) {
     double v = 0;
     std::string err;
@@ -98,7 +98,7 @@ TEST(calc_division_by_zero) {
     CHECK(err == "division by zero");
 }
 
-// Test 6: Compare FNV-1a Against a Weaker Hash Function
+// Test 6: Register and Retrieve 10,000 Tools
 TEST(reg_10000_tools) {
     ToolRegistry r;
     Tool* first = nullptr;
@@ -133,7 +133,7 @@ TEST(reg_10000_tools) {
     std::printf("Max probe length: %zu\n", r.max_probe_length());
 }
 
-// Test 7: Reject Null Tools
+// Test 7: Compare FNV-1a Against a Weaker Hash Function
 TEST(reg_alternative_hash) {
     ToolRegistry r;
 
@@ -173,7 +173,7 @@ TEST(reg_alternative_hash) {
     CHECK(longest_weak > r.max_probe_length());
 }
 
-// Test 8: Visit Each Registered Tool Exactly Once
+// Test 8: Reject Null Tools
 TEST(reg_null_rejected) {
     ToolRegistry r;
 
@@ -183,7 +183,7 @@ TEST(reg_null_rejected) {
     CHECK(r.find("unknown") == nullptr);  // verify missing tool
 }
 
-// Test 9: Validate Safe and Unsafe Workspace Paths
+// Test 9: Visit Each Registered Tool Exactly Once
 TEST(reg_for_each_visits_each_once) {
     ToolRegistry r;
 
@@ -332,6 +332,63 @@ TEST(calc_deep_parentheses) {
 
     REQUIRE(eval(expression, &result, &error));
     CHECK(result == 7);
+}
+
+// Test 21: Accept and Normalize Valid Workspace Paths
+TEST(ws_valid_paths) {
+    TempDir d;
+    Workspace ws(d.path());
+
+    struct Case {
+        std::string input;
+        fs::path expected;
+    };
+
+    // define valid paths and expected results
+    std::vector<Case> cases = {
+        {"notes/todo.txt", ws.root() / "notes/todo.txt"},
+        {"./notes//todo.txt", ws.root() / "notes/todo.txt"},
+        {".", ws.root()},
+        {"a/../b", ws.root() / "b"},
+        {"a/..", ws.root()},
+        {"new/dir/file.txt", ws.root() / "new/dir/file.txt"},
+        {"my..notes.txt", ws.root() / "my..notes.txt"}
+    };
+
+    // verify each path resolves correctly
+    for (const auto& test : cases) {
+        fs::path out;
+        std::string reason;
+
+        REQUIRE(ws.resolve(test.input, &out, &reason));
+        CHECK(out == test.expected);
+    }
+}
+
+// Test 22: Reject Invalid Workspace Paths
+TEST(ws_invalid_paths) {
+    TempDir d;
+    Workspace ws(d.path());
+
+    // define invalid paths
+    std::vector<std::string> paths = {
+        "",
+        std::string("notes") + '\0' + "/x",
+        "/etc/passwd",
+        "..",
+        "../etc/passwd",
+        "a/../../b",
+        "notes/../../ws/notes/todo.txt"
+    };
+
+    // verify each invalid path is rejected
+    for (const auto& path : paths) {
+        fs::path out;
+        std::string reason;
+
+        CHECK(!ws.resolve(path, &out, &reason));
+        CHECK(!reason.empty());
+    }
 }
 // ------------------------------------------------------------- your tests
 //
