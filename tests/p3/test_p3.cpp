@@ -94,6 +94,42 @@ TEST(calc_division_by_zero) {
     CHECK(err == "division by zero");
 }
 
+
+TEST(reg_10000_tools) {
+    ToolRegistry r;
+    Tool* first = nullptr;
+
+    // insert 10,000 uniquely named tools
+    for (int i = 0; i < 10000; ++i) {
+        std::string name = "tool_" + std::to_string(i);
+        auto tool = std::make_unique<NamedTool>(name);
+
+        if (i == 0) {
+            first = tool.get();                 // save first tool's address
+        }
+
+        REQUIRE(r.add(std::move(tool)));        // insert tool
+        CHECK(r.load_factor() <= 1.0);          // verify load factor
+    }
+
+    CHECK(r.size() == 10000);                   // verify total count
+
+    // verify every tool can be found
+    for (int i = 0; i < 10000; ++i) {
+        std::string name = "tool_" + std::to_string(i);
+        REQUIRE(r.find(name) != nullptr);
+    }
+
+    CHECK(r.find("tool_0") == first);            // verify pointer stability
+    CHECK(r.max_probe_length() <= 64);          // verify probe limit
+
+    // print registry measurements
+    std::printf("Buckets: %zu\n", r.bucket_count());
+    std::printf("Load factor: %.3f\n", r.load_factor());
+    std::printf("Max probe length: %zu\n", r.max_probe_length());
+}
+
+
 // ------------------------------------------------------------- your tests
 //
 // Still to write (spec §6 has the full list). Suggested names:
