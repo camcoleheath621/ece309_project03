@@ -48,7 +48,7 @@ bool eval(const std::string& expr, double* value, std::string* error) {
 }  // namespace
 
 // ---------------------------------------------------------------- examples
-
+// Test 1: Add and Find a Registered Tool
 TEST(reg_add_and_find) {
     ToolRegistry r;
     auto t = std::make_unique<NamedTool>("alpha");
@@ -59,6 +59,7 @@ TEST(reg_add_and_find) {
     CHECK(r.find("beta") == nullptr);
 }
 
+// Test 2: Reject Duplicate Tools and Preserve the Original
 TEST(reg_duplicate_keeps_original) {
     ToolRegistry r;
     auto first = std::make_unique<NamedTool>("alpha");
@@ -69,6 +70,7 @@ TEST(reg_duplicate_keeps_original) {
     CHECK(r.size() == 1);
 }
 
+// Test 3: Reject Paths that Escape the Workspace
 TEST(ws_rejects_parent_escape) {
     TempDir d;
     Workspace ws(d.path());
@@ -80,6 +82,7 @@ TEST(ws_rejects_parent_escape) {
     CHECK(!reason.empty());
 }
 
+// Test 4: Verify Calculator Operator Precedence
 TEST(calc_precedence) {
     double v = 0;
     std::string err;
@@ -87,6 +90,7 @@ TEST(calc_precedence) {
     CHECK(v == 14);
 }
 
+// Test 5: Register and Retrieve 10,000 Tools
 TEST(calc_division_by_zero) {
     double v = 0;
     std::string err;
@@ -94,7 +98,7 @@ TEST(calc_division_by_zero) {
     CHECK(err == "division by zero");
 }
 
-// Test 6
+// Test 6: Compare FNV-1a Against a Weaker Hash Function
 TEST(reg_10000_tools) {
     ToolRegistry r;
     Tool* first = nullptr;
@@ -129,7 +133,7 @@ TEST(reg_10000_tools) {
     std::printf("Max probe length: %zu\n", r.max_probe_length());
 }
 
-// Test 7
+// Test 7: Reject Null Tools
 TEST(reg_alternative_hash) {
     ToolRegistry r;
 
@@ -169,7 +173,7 @@ TEST(reg_alternative_hash) {
     CHECK(longest_weak > r.max_probe_length());
 }
 
-// Test 8
+// Test 8: Visit Each Registered Tool Exactly Once
 TEST(reg_null_rejected) {
     ToolRegistry r;
 
@@ -179,7 +183,7 @@ TEST(reg_null_rejected) {
     CHECK(r.find("unknown") == nullptr);  // verify missing tool
 }
 
-// Test 9
+// Test 9: Validate Safe and Unsafe Workspace Paths
 TEST(reg_for_each_visits_each_once) {
     ToolRegistry r;
 
@@ -216,13 +220,41 @@ TEST(reg_for_each_visits_each_once) {
     CHECK(gamma == 1);
 }
 
-// Test 10
+// Test 10: Subtraction evaluates left to right
+TEST(calc_subtraction_left_to_right) {
+    double result = 0;
+    std::string error;
 
-// Test 11
+    REQUIRE(eval("10 - 4 - 3", &result, &error));
+    CHECK(result == 3);
+}
 
-// Test 12
+// Test 11: Division evaluates left to right
+TEST(calc_division_left_to_right) {
+    double result = 0;
+    std::string error;
 
-// Test 13
+    REQUIRE(eval("100 / 10 / 5", &result, &error));
+    CHECK(result == 2);
+}
+
+// Test 12: Parentheses override normal precedence
+TEST(calc_parentheses) {
+    double result = 0;
+    std::string error;
+
+    REQUIRE(eval("(2 + 3) * 4", &result, &error));
+    CHECK(result == 20);
+}
+
+// Test 13: Multiple operations with parentheses
+TEST(calc_multiple_operations) {
+    double result = 0;
+    std::string error;
+
+    REQUIRE(eval("2 * (3 + 4) - 5", &result, &error));
+    CHECK(result == 9);
+}
 
 // Test 14
 
