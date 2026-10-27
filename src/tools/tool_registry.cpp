@@ -5,37 +5,118 @@
 
 #include "tools/tool_registry.h"
 
-ToolRegistry::ToolRegistry() = default;    // TODO: create your initial buckets
-ToolRegistry::~ToolRegistry() = default;   // unique_ptrs in your buckets free the tools
+#include <cstdint>
+#include <string>
+#include <utility>
 
-std::size_t ToolRegistry::hash(std::string_view /*key*/) noexcept {
-    return 0;   // TODO: FNV-1a (spec Appendix A) or another real string hash
+// Constructor:
+// Create an empty table with eight buckets.
+ToolRegistry::ToolRegistry() : buckets_(8) {}
+
+// Destructor:
+// Unique pointers automatically destroy owned tools.
+ToolRegistry::~ToolRegistry() = default;
+
+// Convert a tools name into an integer (FNV-1a hash)
+std::size_t ToolRegistry::hash(std::string_view key) noexcept {
+    std::uint64_t value = 14695981039346656037ULL;
+
+    for (unsigned char c : key) {
+        value ^= c;
+        value *= 1099511628211ULL;
+    }
+
+    return static_cast<std::size_t>(value);
 }
 
-bool ToolRegistry::add(std::unique_ptr<Tool> /*tool*/) {
-    return false;   // TODO
+// Double the table and redistribute existing tools.
+void ToolRegistry::rehash(std::size_t new_bucket_count) {
+    std::vector<Bucket> new_buckets(new_bucket_count);
+
+    for (auto& bucket : buckets_) {
+        for (auto& tool : bucket) {
+            std::size_t index = hash(tool->name()) % new_bucket_count;
+            new_buckets[index].push_back(std::move(tool));
+        }
+    }
+
+    buckets_ = std::move(new_buckets);
 }
 
-Tool* ToolRegistry::find(std::string_view /*name*/) const {
-    return nullptr;   // TODO
+// Add a tool unless its name is already registered.
+bool ToolRegistry::add(std::unique_ptr<Tool> tool) {
+    if (!tool) {
+        return false;
+    }
+
+    if (find(tool->name()) != nullptr) {
+        return false;
+    }
+
+    // Resize before exceeding a load factor of 0.75.
+    double next_load = static_cast<double>(count_ + 1) / buckets_.size();
+
+    if (next_load > 0.75) {
+        rehash(buckets_.size() * 2);
+    }
+
+    std::size_t index = hash(tool->name()) % buckets_.size();
+    buckets_[index].push_back(std::move(tool));
+
+    ++count_;
+    return true;
 }
 
+// Find a registered tool by name.
+Tool* ToolRegistry::find(std::string_view name) const {
+    std::size_t index = hash(name) % buckets_.size();
+
+    for (const auto& tool : buckets_[index]) {
+        std::string registered_name = tool->name();
+
+        if (std::string_view(registered_name) == name) {
+            return tool.get();
+        }
+    }
+
+    return nullptr;
+}
+
+// Return the number of registered tools.
 std::size_t ToolRegistry::size() const noexcept {
-    return 0;   // TODO
+    return count_;
 }
 
-void ToolRegistry::for_each(const std::function<void(const Tool&)>& /*fn*/) const {
-    // TODO
+// Visit every registered tool exactly once.
+void ToolRegistry::for_each(
+    const std::function<void(const Tool&)>& fn) const {
+
+    for (const auto& bucket : buckets_) {
+        for (const auto& tool : bucket) {
+            fn(*tool);
+        }
+    }
 }
 
+// Return the number of buckets.
 std::size_t ToolRegistry::bucket_count() const noexcept {
-    return 0;   // TODO
+    return buckets_.size();
 }
 
+// Calculate the number of tools per bucket.
 double ToolRegistry::load_factor() const noexcept {
-    return 0.0;   // TODO
+    return static_cast<double>(count_) / buckets_.size();
 }
 
+// Return the length of the longest bucket chain.
 std::size_t ToolRegistry::max_probe_length() const {
-    return 0;   // TODO
+    std::size_t longest = 0;
+
+    for (const auto& bucket : buckets_) {
+        if (bucket.size() > longest) {
+            longest = bucket.size();
+        }
+    }
+
+    return longest;
 }
